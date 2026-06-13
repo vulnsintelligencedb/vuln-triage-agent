@@ -14,8 +14,6 @@ It is strictly **defensive**: it triages and recommends fixes. It does not gener
 
 ## ⚠️ Hackathon attribution — what was built during the event
 
-> Judges must be able to clearly identify original contributions. This section is the source of truth. **Edit the "Pre-existing" list to match your reality before submitting** — under-claiming is safe, over-claiming is disqualifying.
-
 ### Built during the hackathon (100% of this repository)
 - **The 7-stage Claude orchestration pipeline** (`src/App.jsx`) — plan → normalize → dedupe/false-positive → prioritize → verify → remediate → self-grade.
 - **The self-verification loop** — Claude audits its own prioritization, returns the errors it finds, and those corrections are applied programmatically (`applyVerifyCorrections` in `src/lib.js`).
