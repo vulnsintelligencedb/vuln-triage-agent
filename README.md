@@ -1,0 +1,79 @@
+# Vuln Triage Agent
+
+**Scanners find vulnerabilities. They don't triage them. This does.**
+
+Burp Suite, Nuclei, and Nessus are excellent at *finding* issues and useless at telling you which ones matter. A single scan returns hundreds of raw findings — duplicates, false positives, and low-risk noise tangled up with the handful of issues that could actually get you breached. Triaging that by hand costs a security engineer days per cycle.
+
+This is an autonomous triage and remediation agent. Feed it raw scanner output plus a short description of your environment, and it runs a multi-stage pipeline that normalizes findings, clusters duplicates, filters false positives, prioritizes by real exploitability and asset exposure, **audits its own triage and corrects its mistakes**, then produces owner-assigned remediation steps and an exportable report. A multi-day manual workflow becomes a sub-minute one — and it shows its work at every stage.
+
+It is strictly **defensive**: it triages and recommends fixes. It does not generate exploits, proof-of-concept attacks, or offensive tooling.
+
+---
+
+## ⚠️ Hackathon attribution — what was built during the event
+
+> Judges must be able to clearly identify original contributions. This section is the source of truth. **Edit the "Pre-existing" list to match your reality before submitting** — under-claiming is safe, over-claiming is disqualifying.
+
+### Built during the hackathon (100% of this repository)
+- **The 7-stage Claude orchestration pipeline** (`src/App.jsx`) — plan → normalize → dedupe/false-positive → prioritize → verify → remediate → self-grade.
+- **The self-verification loop** — Claude audits its own prioritization, returns the errors it finds, and those corrections are applied programmatically (`applyVerifyCorrections` in `src/lib.js`).
+- **All prompt engineering** — the system prompt and the seven per-stage prompts with strict structured-output (minified JSON) contracts.
+- **The fault-tolerant parser** (`parseJSON` in `src/lib.js`) — recovers complete records even when a model response is truncated at the token ceiling.
+- **The triage UI** — the live pipeline visualization, noise→signal metrics, prioritized queue, and report export.
+- **The backend proxy** (`server.js`) — keeps the API key server-side.
+- **The test suite** (`tests/lib.test.js`) — covers the parser's truncation recovery, the verify-correction logic, and the metrics.
+- **Synthetic sample data** (`src/sampleData.js`) — fictional `acme.io` findings authored for this project.
+
+### Pre-existing / brought in
+- *(Edit this to match what you actually reused.)* Example entries: the `vulnsintelligencedb` GitHub account; the `vulnsintelligencedb.com` domain (if used for hosting); standard scaffolding from `npm create vite`.
+- **No prior application code, prompts, or triage logic was reused.** If that changes, list the exact files here.
+
+### Tools
+Built with assistance from Claude (Opus 4.8) for architecture, code generation, prompt design, and debugging during the event. See the session log linked in the submission.
+
+---
+
+## How Claude is used
+
+Each pipeline stage is a separate Opus 4.8 call with a single responsibility and a strict JSON-output contract — not a chatbot. The model is set **server-side** (`CLAUDE_MODEL`, default `claude-opus-4-8`) so the key never reaches the browser. The standout stage is **Verify**: the model reviews its own prior output, flags errors (e.g. an internet-facing critical it under-rated), and the fixes are applied before the final decision. It then **self-grades** the run against a rubric (see `rubric.md`).
+
+## Run it locally
+
+```bash
+npm install
+cp .env.example .env        # then put your real ANTHROPIC_API_KEY in .env
+npm run build               # build the frontend
+npm start                   # serves app + /api proxy on http://localhost:3001
+```
+
+For hot-reload development, run the backend and frontend in two terminals:
+
+```bash
+npm run server              # terminal 1 — backend on :3001
+npm run dev                 # terminal 2 — Vite proxies /api to the backend
+```
+
+## Test
+
+```bash
+npm test                    # Node's built-in runner; no extra deps
+```
+
+## Deploy (live URL)
+
+Any Node host works (Replit, Render, Railway). Set **one** environment variable — `ANTHROPIC_API_KEY` — then build and start:
+
+```bash
+npm install && npm run build && npm start
+```
+
+`CLAUDE_MODEL` defaults to `claude-opus-4-8`; override it via env if needed. **Never commit `.env`** — it's gitignored.
+
+## Data & ethics
+
+- The only data in this repo is **synthetic** (`acme.io` is fictional). Do not commit real scanner output or findings from systems you are not authorized to scan.
+- Defensive scope only — no exploit generation. This constraint is enforced in the shared system prompt.
+
+## License
+
+MIT — see `LICENSE`.
